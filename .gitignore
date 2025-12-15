@@ -1,0 +1,4 @@
+# 忽略根目录下的 data 和 VMamba 文件夹
+/data/
+/pretrained/
+/VMamba/
