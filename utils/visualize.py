@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/mnt/e/Github/demo')
+sys.path.append('/mnt/e/Github/CMDB-Net')
 import os
 import torch
 import numpy as np
@@ -19,7 +19,7 @@ class Visualizer:
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         
         # 加载模型
-        print(f"加载模型: {model_path}")
+        print(f"Loading model: {model_path}")
         checkpoint = torch.load(model_path, map_location=self.device)
         
         self.model = BaselineModel(
@@ -36,14 +36,7 @@ class Visualizer:
             print(f"Training metrics: mIoU={checkpoint['metrics']['mIoU']:.4f}")
         
         # 类别名称和颜色
-        self.class_names = [
-            'Impervious surfaces',
-            'Building', 
-            'Low vegetation',
-            'Tree',
-            'Car',
-            'Clutter'
-        ]
+        self.class_names = config.CLASS_MAMES
         
         self.class_colors = np.array([
             [255, 255, 255],  # 白色
@@ -86,7 +79,7 @@ class Visualizer:
         dataset = dataloader.dataset
         print(f"\n开始预测 {len(dataset)} 张图像...")
         
-        for batch in tqdm(dataloader):
+        for batch in tqdm(dataloader, total=len(dataset)):
             images = batch['image'].to(self.device)
             masks = batch['mask']
             filenames = batch['filename']
@@ -244,7 +237,7 @@ class Visualizer:
 
 if __name__ == "__main__":
     config = PotsdamConfig()
-    visualizer = Visualizer('checkpoints/best_model.pth', config)
+    visualizer = Visualizer('checkpoints/best_model_exp1_12_15.pth', config)
 
     save_dir = 'results'
 

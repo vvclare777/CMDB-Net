@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/mnt/e/Github/demo')
+sys.path.append('/mnt/e/Github/CMDB-Net')
 import torch
 import torch.nn as nn
 from thop import profile

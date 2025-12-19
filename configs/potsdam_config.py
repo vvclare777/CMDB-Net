@@ -1,7 +1,7 @@
 import os
 
 class PotsdamConfig:
-    EXP_NAME = 'exp1_12_15'
+    EXP_NAME = 'exp1_12_18'
 
     """Potsdam数据集配置"""
     # Potsdam标签颜色映射 (RGB)
@@ -13,6 +13,14 @@ class PotsdamConfig:
         4: [255, 255, 0],    # Car - 黄色
         5: [255, 0, 0],      # Clutter - 红色
     }
+    CLASS_NAMES = [
+        'Impervious surfaces',
+        'Building',
+        'Low vegetation',
+        'Tree',
+        'Car',
+        'Clutter'
+    ]
     NUM_CLASSES = 6
 
     # 数据集路径配置
@@ -51,7 +59,7 @@ class PotsdamConfig:
     LEARNING_RATE = 1e-4
     WEIGHT_DECAY = 1e-4
     PRETRAINED = True
-    LOSS = 'ce'
+    LOSS = 'combined'
     OPTIMIZER = 'adamw'
     SCHEDULER = 'cosine'
 

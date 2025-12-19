@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/mnt/e/Github/demo')
+sys.path.append('/mnt/e/Github/CMDB-Net')
 import torch.nn as nn
 from torchvision.models import resnet34, ResNet34_Weights
 from thop import profile

@@ -1,5 +1,5 @@
 import sys
-sys.path.append('/mnt/e/Github/demo')
+sys.path.append('/mnt/e/Github/CMDB-Net')
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,7 +8,7 @@ from models.mamba_branch import MambaBranch
 
 class BaselineModel(nn.Module):
     """CNN-Mamba双分支基线模型 (简单相加策略) """
-    def __init__(self, num_classes=6, in_channels=3, pretrained=True):
+    def __init__(self, num_classes, in_channels=3, pretrained=True):
         super(BaselineModel, self).__init__()
         self.num_classes = num_classes
         

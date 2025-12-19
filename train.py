@@ -1,8 +1,12 @@
+import sys
+sys.path.append('/mnt/e/Github/CMDB-Net')
 import os
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
+import random
+import numpy as np
 from models.baseline_model import BaselineModel
 from utils.loss import Loss
 from utils.metrics import SegmentationMetrics
@@ -20,7 +24,7 @@ class Trainer:
         
         # 创建数据加载器
         print("Creating dataloader...")
-        self.train_loader, self.val_loader = create_dataloaders(config)
+        self.train_loader, self.val_loader, _ = create_dataloaders(config)
 
         # 创建模型
         print("Creating model...")
@@ -34,10 +38,25 @@ class Trainer:
         # class_weights = self.calculate_class_weights()
         
         # 损失函数
+        self.loss_fn = Loss(config)
         if config.LOSS == 'ce':
             self.criterion = nn.CrossEntropyLoss(ignore_index=255)
         elif config.LOSS == 'focal':
-            self.criterion = Loss(config).focal_loss(alpha=0.25, gamma=2.0, ignore_index=255)
+            self.criterion = lambda outputs, targets: self.loss_fn.focal_loss(
+                outputs,
+                targets,
+                alpha=0.25,
+                gamma=2.0,
+                ignore_index=255,
+            )
+        elif config.LOSS == 'combined':
+            self.criterion = lambda outputs, targets: self.loss_fn.combined_loss(
+                outputs,
+                targets,
+                config.NUM_CLASSES,
+                alpha=0.5,
+                class_weights=None,
+            )
         else:
             raise ValueError(f"Unknown loss: {config.LOSS}")
         
@@ -89,14 +108,7 @@ class Trainer:
         self.best_miou = 0.0
         
         # 类别名称
-        self.class_names = [
-            'Impervious surfaces',
-            'Building',
-            'Low vegetation',
-            'Tree',
-            'Car',
-            'Clutter'
-        ]
+        self.class_names = config.CLASS_NAMES
 
         # 类别颜色
         self.class_colors = torch.tensor([
@@ -351,6 +363,20 @@ class Trainer:
         print(f"\nTraining completed! Best mIoU: {self.best_miou:.4f}")
 
 if __name__ == "__main__":
+    def set_seed(seed=42):
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed(seed)
+            torch.cuda.manual_seed_all(seed)
+            # 确保CUDA的确定性(可能会降低性能)
+            torch.backends.cudnn.deterministic = True
+            torch.backends.cudnn.benchmark = False
+    
+    # 设置随机种子
+    set_seed(42)
+
     # 设置设备
     device = torch.device(f'cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Device: {device}")
