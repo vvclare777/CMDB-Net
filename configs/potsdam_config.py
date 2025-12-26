@@ -1,7 +1,7 @@
 import os
 
 class PotsdamConfig:
-    EXP_NAME = 'exp1_12_18'
+    EXP_NAME = 'exp2_12_25'
 
     """Potsdam数据集配置"""
     # Potsdam标签颜色映射 (RGB)
@@ -47,9 +47,10 @@ class PotsdamConfig:
     VAL_RATIO = 0.2   # 验证集比例
 
     # 图像切片配置
-    TILE_SIZE = 256  # 切片大小
-    OVERLAP = 64    # 重叠区域大小
+    TILE_SIZE = 512  # 切片大小
+    OVERLAP = 256    # 重叠区域大小
     STRIDE = TILE_SIZE - OVERLAP  # 步长
+    IMG_SIZE = 256  # 输入图像大小
 
     # 模型训练配置
     VIS_INTERVAL = 5  # 每5个epoch可视化一次预测结果
@@ -59,7 +60,7 @@ class PotsdamConfig:
     LEARNING_RATE = 1e-4
     WEIGHT_DECAY = 1e-4
     PRETRAINED = True
-    LOSS = 'combined'
+    LOSS = 'focal_dice'
     OPTIMIZER = 'adamw'
     SCHEDULER = 'cosine'
 

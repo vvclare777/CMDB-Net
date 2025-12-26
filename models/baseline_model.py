@@ -34,6 +34,17 @@ class BaselineModel(nn.Module):
             in_channels_list=self.fused_channels,
             num_classes=num_classes
         )
+
+        # 融合模块
+        self.fusion_module = nn.ModuleDict()
+        for stage in ['stage1', 'stage2', 'stage3', 'stage4']:
+            # 输入通道翻倍，输出通道保持不变
+            in_ch = self.cnn_branch.get_output_channels()[['stage1', 'stage2', 'stage3', 'stage4'].index(stage)]
+            self.fusion_module[stage] = nn.Sequential(
+                nn.Conv2d(in_ch * 2, in_ch, kernel_size=1, bias=False),
+                nn.BatchNorm2d(in_ch),
+                nn.ReLU(inplace=True)
+            )
     
     def forward(self, x):
         """
@@ -51,7 +62,8 @@ class BaselineModel(nn.Module):
         # 简单相加融合
         fused_features = {}
         for stage in ['stage1', 'stage2', 'stage3', 'stage4']:
-            fused_features[stage] = cnn_features[stage] + mamba_features[stage]
+            cat_feat = torch.cat([cnn_features[stage], mamba_features[stage]], dim=1)  # 拼接
+            fused_features[stage] = self.fusion_module[stage](cat_feat)  # 卷积融合
         
         # 解码
         output = self.decoder(fused_features, target_size=x.shape[-2:])

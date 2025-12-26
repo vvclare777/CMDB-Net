@@ -36,7 +36,7 @@ class Visualizer:
             print(f"Training metrics: mIoU={checkpoint['metrics']['mIoU']:.4f}")
         
         # 类别名称和颜色
-        self.class_names = config.CLASS_MAMES
+        self.class_names = config.CLASS_NAMES
         
         self.class_colors = np.array([
             [255, 255, 255],  # 白色
@@ -71,37 +71,34 @@ class Visualizer:
     def predict_dataset(self, dataloader, save_dir):
         """预测整个数据集"""
         os.makedirs(save_dir, exist_ok=True)
-        os.makedirs(os.path.join(save_dir, 'predictions'), exist_ok=True)
+        # os.makedirs(os.path.join(save_dir, 'predictions'), exist_ok=True)
         os.makedirs(os.path.join(save_dir, 'visualizations'), exist_ok=True)
         
         metrics = SegmentationMetrics(num_classes=self.config.NUM_CLASSES)
-
-        dataset = dataloader.dataset
-        print(f"\n开始预测 {len(dataset)} 张图像...")
         
-        for batch in tqdm(dataloader, total=len(dataset)):
+        for batch in tqdm(dataloader, desc="[Test]"):
             images = batch['image'].to(self.device)
-            masks = batch['mask']
+            masks = batch['mask'].to(self.device)
             filenames = batch['filename']
-            
+
             # 预测
             with torch.no_grad():
                 outputs = self.model(images)
                 preds = torch.argmax(outputs, dim=1)
-            
+
             # 更新指标
-            metrics.update(preds.cpu(), masks)
-            
+            metrics.update(preds, masks)
+
             # 保存预测结果
             for i in range(len(filenames)):
                 pred_mask = preds[i].cpu().numpy()
-                gt_mask = masks[i].numpy()
-                
-                # 保存预测mask
-                pred_filename = filenames[i].replace('.jpg', '_pred.png')
-                pred_path = os.path.join(save_dir, 'predictions', pred_filename)
-                Image.fromarray(pred_mask.astype(np.uint8)).save(pred_path)
-                
+                gt_mask = masks[i].cpu().numpy()
+
+                # # 保存预测mask
+                # pred_filename = filenames[i].replace('.jpg', '_pred.png')
+                # pred_path = os.path.join(save_dir, 'predictions', pred_filename)
+                # Image.fromarray(pred_mask.astype(np.uint8)).save(pred_path)
+
                 # 保存可视化
                 self.visualize_prediction(
                     images[i],
@@ -115,7 +112,7 @@ class Visualizer:
         
         # 保存指标
         all_metrics = metrics.get_all_metrics()
-        self.save_metrics(all_metrics, os.path.join(save_dir, 'metrics.txt'))
+        self.save_metrics(all_metrics, os.path.join(save_dir, 'metrics' + config.EXP_NAME + '.txt'))
         
         return all_metrics
     
@@ -237,7 +234,8 @@ class Visualizer:
 
 if __name__ == "__main__":
     config = PotsdamConfig()
-    visualizer = Visualizer('checkpoints/best_model_exp1_12_15.pth', config)
+    cpt_path = os.path.join('checkpoints', 'best_model_' + config.EXP_NAME + '.pth')
+    visualizer = Visualizer(cpt_path, config)
 
     save_dir = 'results'
 

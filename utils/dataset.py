@@ -50,7 +50,7 @@ class PotsdamDataset(Dataset):
 def rgb_to_mask(label_rgb):
     """将RGB标签转换为类别索引"""
     h, w = label_rgb.shape[:2]  # 获取图像高度和宽度
-    mask = np.zeros((h, w), dtype=np.uint8)  # 初始化单通道标签图
+    mask = np.full((h, w), 255, dtype=np.uint8)  # 初始化为255 (ignore_index)
     
     for class_id, color in PotsdamConfig.LABEL_COLORS.items():
         # 创建掩码：匹配所有通道的颜色
@@ -59,16 +59,6 @@ def rgb_to_mask(label_rgb):
     
     return mask
 
-# def mask_to_rgb(mask):
-#     """将类别索引转换为RGB可视化"""
-#     h, w = mask.shape
-#     rgb = np.zeros((h, w, 3), dtype=np.uint8)
-    
-#     for class_id, color in PotsdamConfig.LABEL_COLORS.items():
-#         rgb[mask == class_id] = color
-    
-#     return rgb
-
 def get_train_transform(img_size):
     """训练集数据增强"""
     return A.Compose([
@@ -76,10 +66,25 @@ def get_train_transform(img_size):
         A.HorizontalFlip(p=0.5),
         A.VerticalFlip(p=0.5),
         A.RandomRotate90(p=0.5),
+
+        A.CoarseDropout(
+            max_holes=8, 
+            max_height=32, 
+            max_width=32, 
+            min_holes=1, 
+            min_height=8, 
+            min_width=8, 
+            fill_value=0,  # 用黑色填充挖掉的区域
+            p=0.5  # 50%的概率应用
+        ),
+        
+        # 颜色增强
+        A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1, p=0.8),
         A.OneOf([
             A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=1),
             A.HueSaturationValue(hue_shift_limit=20, sat_shift_limit=30, val_shift_limit=20, p=1),
         ], p=0.5),
+        
         A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ToTensorV2(),
     ])
@@ -97,19 +102,19 @@ def create_dataloaders(config):
     train_dataset = PotsdamDataset(
         root_dir=config.PROCESSED_DATA_DIR,
         split='train',
-        transform=get_train_transform(config.TILE_SIZE)
+        transform=get_train_transform(config.IMG_SIZE)
     )
     
     val_dataset = PotsdamDataset(
         root_dir=config.PROCESSED_DATA_DIR,
         split='val',
-        transform=get_val_transform(config.TILE_SIZE)
+        transform=get_val_transform(config.IMG_SIZE)
     )
 
     test_dataset = PotsdamDataset(
         root_dir=config.PROCESSED_DATA_DIR,
         split='test',
-        transform=get_val_transform(config.TILE_SIZE)
+        transform=get_val_transform(config.IMG_SIZE)
     )
     
     # 创建数据加载器

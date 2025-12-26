@@ -7,12 +7,14 @@ import torch.optim as optim
 from tqdm import tqdm
 import random
 import numpy as np
+from utils.loss import FocalLoss, DiceLoss, FocalDiceLoss
 from models.baseline_model import BaselineModel
-from utils.loss import Loss
 from utils.metrics import SegmentationMetrics
 from utils.dataset import create_dataloaders
 from configs.potsdam_config import PotsdamConfig
 from torch.utils.tensorboard import SummaryWriter
+
+torch.backends.cudnn.benchmark = True
 
 class Trainer:
     def __init__(self, config):
@@ -34,52 +36,70 @@ class Trainer:
             pretrained=config.PRETRAINED
         ).to(self.device)
 
-        # # 计算类别权重（可选，用于处理类别不平衡）
-        # class_weights = self.calculate_class_weights()
+        # 计算类别权重（可选，用于处理类别不平衡）
+        self.class_weights = self.calculate_class_weights()
         
         # 损失函数
-        self.loss_fn = Loss(config)
         if config.LOSS == 'ce':
-            self.criterion = nn.CrossEntropyLoss(ignore_index=255)
-        elif config.LOSS == 'focal':
-            self.criterion = lambda outputs, targets: self.loss_fn.focal_loss(
-                outputs,
-                targets,
-                alpha=0.25,
-                gamma=2.0,
-                ignore_index=255,
+            self.criterion = nn.CrossEntropyLoss(
+                weight=self.class_weights,
+                ignore_index=255
             )
-        elif config.LOSS == 'combined':
-            self.criterion = lambda outputs, targets: self.loss_fn.combined_loss(
-                outputs,
-                targets,
-                config.NUM_CLASSES,
-                alpha=0.5,
-                class_weights=None,
+        elif config.LOSS == 'focal':
+            self.criterion = FocalLoss(
+                alpha=1,
+                gamma=3.0,
+                ignore_index=255,
+                weight=self.class_weights,
+            )
+        elif config.LOSS == 'dice':
+            self.criterion = DiceLoss(
+                num_classes=config.NUM_CLASSES,
+                ignore_index=255,
+                weight=self.class_weights,
+            )
+        elif config.LOSS == 'focal_dice':
+            self.criterion = FocalDiceLoss(
+                num_classes=config.NUM_CLASSES,
+                focal_alpha=0.25,
+                focal_gamma=2.0,
+                combined_alpha=0.5,
+                weight=self.class_weights,
+                ignore_index=255,
             )
         else:
             raise ValueError(f"Unknown loss: {config.LOSS}")
         
         # 优化器
-        if config.OPTIMIZER == 'adam':
-            self.optimizer = optim.Adam(
-                self.model.parameters(),
-                lr=config.LEARNING_RATE,
-                weight_decay=config.WEIGHT_DECAY
-            )
-        elif config.OPTIMIZER == 'adamw':
+        if config.OPTIMIZER == 'adamw':
+            # 模型结构是 self.model.cnn_branch 和 self.model.mamba_branch, self.model.decoder
+            backbone_params = list(self.model.cnn_branch.parameters())
+            # 其他参数（Mamba分支，融合模块，解码器头）
+            head_params = list(self.model.mamba_branch.parameters()) + \
+                          list(self.model.fusion_module.parameters()) + \
+                          list(self.model.decoder.parameters())
+            param_groups = [
+                {'params': backbone_params, 'lr': config.LEARNING_RATE / 10}, # backbone使用1/10的学习率
+                {'params': head_params, 'lr': config.LEARNING_RATE}
+            ]
             self.optimizer = optim.AdamW(
-                self.model.parameters(),
+                param_groups,
                 lr=config.LEARNING_RATE,
                 weight_decay=config.WEIGHT_DECAY
             )
-        elif config.OPTIMIZER == 'sgd':
-            self.optimizer = optim.SGD(
-                self.model.parameters(),
-                lr=config.LEARNING_RATE,
-                momentum=0.9,
-                weight_decay=config.WEIGHT_DECAY
-            )
+        # elif config.OPTIMIZER == 'adam':
+        #     self.optimizer = optim.Adam(
+        #         self.model.parameters(),
+        #         lr=config.LEARNING_RATE,
+        #         weight_decay=config.WEIGHT_DECAY
+        #     )
+        # elif config.OPTIMIZER == 'sgd':
+        #     self.optimizer = optim.SGD(
+        #         self.model.parameters(),
+        #         lr=config.LEARNING_RATE,
+        #         momentum=0.9,
+        #         weight_decay=config.WEIGHT_DECAY
+        #     )
 
         # 学习率调度器
         if config.SCHEDULER == 'poly':
@@ -134,11 +154,29 @@ class Trainer:
         print(f"  Optimizer: {config.OPTIMIZER}\n")
         print(f"  TensorBoard Logs: runs/{config.EXP_NAME}\n")
 
-    # def calculate_class_weights(self):
-    #     """计算类别权重（用于处理类别不平衡）"""
-    #     # 这里可以根据数据集统计信息计算权重
-    #     # 简单起见，这里返回None（均等权重）
-    #     return None
+    def calculate_class_weights(self):
+        """计算类别权重(用于处理类别不平衡)"""
+        print("Calculating class weights from train dataset...")
+        class_counts = torch.zeros(self.config.NUM_CLASSES, dtype=torch.float64)
+        
+        # 统计每个类别的像素数量
+        for batch in tqdm(self.train_loader, desc="[Calculate Class Weights]"):
+            masks = batch['mask']
+            # 确保忽略索引255不被计算在内
+            valid_pixels = masks[masks != 255]
+            for class_id in range(self.config.NUM_CLASSES):
+                class_counts[class_id] += (valid_pixels == class_id).sum().item()
+        
+        # 计算权重从，使用对数平滑，减少极其稀有类别的权重冲击
+        total_pixels = class_counts.sum()
+        class_weights = 1.0 / torch.log(class_counts / total_pixels + 1.02)
+         
+        print("\nClass weights:")
+        for i, (name, weight, count) in enumerate(zip(self.config.CLASS_NAMES, class_weights, class_counts)):
+            percentage = (count / total_pixels) * 100
+            print(f"  {name}: {weight:.4f} (pixels: {int(count)}, {percentage:.2f}%)")
+        
+        return class_weights.to(self.device).float()
 
     def log_config(self):
         """记录配置到TensorBoard"""

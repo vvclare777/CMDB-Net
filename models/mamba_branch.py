@@ -109,10 +109,10 @@ class MambaBranch(nn.Module):
             x: [B, C, H, W]
         Returns:
             dict: {
-                    'stage1': [B, 128, H/4, W/4],
-                    'stage2': [B, 256, H/8, W/8],
-                    'stage3': [B, 512, H/16, W/16],
-                    'stage4': [B, 512, H/32, W/32]
+                'stage1': [B, 128, H/4, W/4],
+                'stage2': [B, 256, H/8, W/8],
+                'stage3': [B, 512, H/16, W/16],
+                'stage4': [B, 512, H/32, W/32]
             }
         """
         # 确保输入与模型在同一设备
