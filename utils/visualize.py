@@ -8,7 +8,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 from utils.dataset import PotsdamDataset, create_dataloaders
-from models.baseline_model import BaselineModel
+from models.gated_fusion_model import GatedFusionModel
 from metrics import SegmentationMetrics
 from configs.potsdam_config import PotsdamConfig
 
@@ -22,7 +22,7 @@ class Visualizer:
         print(f"Loading model: {model_path}")
         checkpoint = torch.load(model_path, map_location=self.device)
         
-        self.model = BaselineModel(
+        self.model = GatedFusionModel(
             num_classes=config.NUM_CLASSES,
             in_channels=3,
             pretrained=True
@@ -84,7 +84,7 @@ class Visualizer:
             # 预测
             with torch.no_grad():
                 outputs = self.model(images)
-                preds = torch.argmax(outputs, dim=1)
+                preds = torch.argmax(outputs[0], dim=1)
 
             # 更新指标
             metrics.update(preds, masks)
@@ -112,7 +112,7 @@ class Visualizer:
         
         # 保存指标
         all_metrics = metrics.get_all_metrics()
-        self.save_metrics(all_metrics, os.path.join(save_dir, 'metrics' + config.EXP_NAME + '.txt'))
+        self.save_metrics(all_metrics, os.path.join(save_dir, 'metrics_' + config.EXP_NAME + '.txt'))
         
         return all_metrics
     

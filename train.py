@@ -8,7 +8,7 @@ from tqdm import tqdm
 import random
 import numpy as np
 from utils.loss import FocalLoss, DiceLoss, FocalDiceLoss
-from models.baseline_model import BaselineModel
+from models.gated_fusion_model import GatedFusionModel
 from utils.metrics import SegmentationMetrics
 from utils.dataset import create_dataloaders
 from configs.potsdam_config import PotsdamConfig
@@ -30,7 +30,7 @@ class Trainer:
 
         # 创建模型
         print("Creating model...")
-        self.model = BaselineModel(
+        self.model = GatedFusionModel(
             num_classes=config.NUM_CLASSES,
             in_channels=3,
             pretrained=config.PRETRAINED
@@ -76,7 +76,7 @@ class Trainer:
             backbone_params = list(self.model.cnn_branch.parameters())
             # 其他参数（Mamba分支，融合模块，解码器头）
             head_params = list(self.model.mamba_branch.parameters()) + \
-                          list(self.model.fusion_module.parameters()) + \
+                          list(self.model.fusion_modules.parameters()) + \
                           list(self.model.decoder.parameters())
             param_groups = [
                 {'params': backbone_params, 'lr': config.LEARNING_RATE / 10}, # backbone使用1/10的学习率
@@ -216,7 +216,7 @@ class Trainer:
             
             # 前向传播
             outputs = self.model(images)
-            loss = self.criterion(outputs, masks)
+            loss = self.criterion(outputs[0], masks)
             
             # 反向传播
             self.optimizer.zero_grad()
@@ -264,10 +264,10 @@ class Trainer:
                 
                 # 前向传播
                 outputs = self.model(images)
-                loss = self.criterion(outputs, masks)
+                loss = self.criterion(outputs[0], masks)
                 
                 # 预测
-                preds = torch.argmax(outputs, dim=1)
+                preds = torch.argmax(outputs[0], dim=1)
                 
                 # 更新指标
                 self.metrics.update(preds, masks)
