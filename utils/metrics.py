@@ -3,14 +3,7 @@ import torch
 from scipy.ndimage import binary_dilation
 
 class SegmentationMetrics:
-    """
-    语义分割评估指标
-    - mIoU (Mean Intersection over Union)
-    - OA (Overall Accuracy)
-    - F1 Score
-    - Kappa系数
-    - Per-class IoU
-    """
+    """语义分割评估指标"""
     def __init__(self, num_classes, ignore_index=255):
         self.num_classes = num_classes
         self.ignore_index = ignore_index

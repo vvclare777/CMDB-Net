@@ -1,17 +1,18 @@
 import os
 
 class PotsdamConfig:
-    EXP_NAME = 'exp3_12_26'
+    EXP_NAME = 'exp1_12_27_no_clutter'
 
     """Potsdam数据集配置"""
     # Potsdam标签颜色映射 (RGB)
+    # Clutter类别(原类别5)将被映射为ignore_index=255
     LABEL_COLORS = {
         0: [255, 255, 255],  # Impervious surfaces - 白色
         1: [0, 0, 255],      # Building - 蓝色
         2: [0, 255, 255],    # Low vegetation - 青色
         3: [0, 255, 0],      # Tree - 绿色
         4: [255, 255, 0],    # Car - 黄色
-        5: [255, 0, 0],      # Clutter - 红色
+        # 5: [255, 0, 0],      # Clutter - 红色
     }
     CLASS_NAMES = [
         'Impervious surfaces',
@@ -19,9 +20,9 @@ class PotsdamConfig:
         'Low vegetation',
         'Tree',
         'Car',
-        'Clutter'
+        # 'Clutter'
     ]
-    NUM_CLASSES = 6
+    NUM_CLASSES = 5
 
     # 数据集路径配置
     RAW_DATA_DIR = 'data/Potsdam'

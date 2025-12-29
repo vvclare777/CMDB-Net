@@ -51,6 +51,10 @@ def rgb_to_mask(label_rgb):
     """将RGB标签转换为类别索引"""
     h, w = label_rgb.shape[:2]  # 获取图像高度和宽度
     mask = np.full((h, w), 255, dtype=np.uint8)  # 初始化为255 (ignore_index)
+
+    # 处理Clutter类别，将其映射为ignore_index
+    clutter_matches = np.all(label_rgb == [255, 0, 0], axis=-1)
+    mask[clutter_matches] = 255
     
     for class_id, color in PotsdamConfig.LABEL_COLORS.items():
         # 创建掩码：匹配所有通道的颜色

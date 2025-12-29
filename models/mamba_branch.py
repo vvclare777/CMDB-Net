@@ -74,10 +74,10 @@ class MambaBranch(nn.Module):
         # 多尺度输出: 返回所有4个stage的特征
         self.output_channels = [128, 256, 512, 512]
 
-        # 将模型移到CUDA
-        if self.use_cuda and torch.cuda.is_available():
-            self.backbone = self.backbone.cuda()
-            self.feature_projections = self.feature_projections.cuda()
+        # 移除手动cuda移动，由外部控制
+        # if self.use_cuda and torch.cuda.is_available():
+        #     self.backbone = self.backbone.cuda()
+        #     self.feature_projections = self.feature_projections.cuda()
     
     def _make_projection(self, in_channels, out_channels):
         """特征投影层"""
@@ -115,9 +115,9 @@ class MambaBranch(nn.Module):
                 'stage4': [B, 512, H/32, W/32]
             }
         """
-        # 确保输入与模型在同一设备
-        if self.use_cuda and torch.cuda.is_available():
-            x = x.cuda()
+        # 确保输入与模型在同一设备 - 移除手动cuda移动
+        # if self.use_cuda and torch.cuda.is_available():
+        #     x = x.cuda()
 
         # Backbone_VSSM返回的是列表，每个元素是一个stage的特征图
         features_list = self.backbone(x)  # 返回的是列表，每个元素是[B, C, H, W]

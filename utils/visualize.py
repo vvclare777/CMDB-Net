@@ -44,7 +44,7 @@ class Visualizer:
             [0, 255, 255],    # 青色
             [0, 255, 0],      # 绿色
             [255, 255, 0],    # 黄色
-            [255, 0, 0],      # 红色
+            # [255, 0, 0],      # 红色
         ])
     
     def predict_image(self, image_path):
@@ -196,7 +196,7 @@ class Visualizer:
         fig.legend(
             handles=legend_elements,
             loc='lower center',
-            ncol=6,
+            ncol=5,
             fontsize=10,
             frameon=True
         )
