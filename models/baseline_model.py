@@ -164,33 +164,3 @@ class Decoder(nn.Module):
         x = self.final_conv(x)  # [B, num_classes, H, W]
         
         return x
-
-# if __name__ == "__main__":
-#     print("=" * 60)
-#     print("测试 BaselineModel")
-#     print("=" * 60)
-    
-#     # 创建模型
-#     model = BaselineModel(num_classes=6, in_channels=3, pretrained=True)
-    
-#     # 测试前向传播
-#     x = torch.randn(2, 3, 512, 512)
-    
-#     if torch.cuda.is_available():
-#         model = model.cuda()
-#         x = x.cuda()
-    
-#     with torch.no_grad():
-#         output = model(x)
-    
-#     print(f"\n输入形状: {x.shape}")
-#     print(f"输出形状: {output.shape}")
-    
-#     # 计算参数量
-#     total_params = sum(p.numel() for p in model.parameters())
-#     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    
-#     print(f"\n总参数量: {total_params/1e6:.2f}M")
-#     print(f"可训练参数: {trainable_params/1e6:.2f}M")
-    
-#     print("\n" + "=" * 60)

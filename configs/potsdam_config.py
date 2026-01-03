@@ -1,7 +1,7 @@
 import os
 
 class PotsdamConfig:
-    EXP_NAME = 'exp1_12_27_no_clutter'
+    EXP_NAME = 'exp3_1_2'
 
     """Potsdam数据集配置"""
     # Potsdam标签颜色映射 (RGB)

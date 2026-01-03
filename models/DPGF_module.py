@@ -66,7 +66,6 @@ class DualPathGatedFusion(nn.Module):
         W_global = self.compute_global_weight(F_global)  # [B, 1, H, W]
         
         # 生成门控图，同时满足"纹理复杂"和"场景关键"的位置获得高值
-        # 这里后期可以尝试将逻辑与改成别的方法
         Gate_map = W_local * W_global  # [B, 1, H, W]
         
         # 自适应融合，门控值高 → 更多使用局部特征 F_local，门控值低 → 更多使用全局特征 F_global
